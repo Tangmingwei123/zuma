@@ -13,9 +13,9 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-[100dvh] bg-[#050810] flex items-center justify-center overflow-hidden font-['Inter']">
+    <div className="w-full h-[100dvh] bg-[#050810] flex items-center justify-center overflow-hidden font-sans">
       {gameState === 'menu' && (
-        <div className="relative text-center z-10 max-w-xl px-4 animate-in fade-in zoom-in duration-1000">
+        <div className="relative text-center z-10 max-w-xl px-4 fade-in-ready">
           <div className="absolute -top-32 -left-32 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full" />
           <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-blue-500/10 blur-[100px] rounded-full" />
           
@@ -60,7 +60,7 @@ const App: React.FC = () => {
       )}
 
       {gameState === 'gameover' && (
-        <div className="text-center space-y-8 md:space-y-12 animate-in slide-in-from-bottom-20 duration-700 px-4">
+        <div className="text-center space-y-8 md:space-y-12 px-4 fade-in-ready">
           <div className="space-y-2">
             <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter italic">TERMINATED</h2>
             <p className="text-emerald-400 font-bold tracking-[0.5em] uppercase text-xs">Sector Defended</p>
