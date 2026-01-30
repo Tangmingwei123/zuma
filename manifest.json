@@ -2,8 +2,8 @@
 {
   "name": "Zuma Architect",
   "short_name": "Zuma",
-  "description": "High-performance Zuma clone game.",
-  "start_url": ".",
+  "description": "Zuma Game",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#010204",
   "theme_color": "#06b6d4",
@@ -11,9 +11,8 @@
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/3612/3612513.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "sizes": "192x192",
+      "type": "image/png"
     }
   ]
 }

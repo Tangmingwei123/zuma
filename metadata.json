@@ -1,5 +1,5 @@
 {
   "name": "Zuma Architect",
-  "description": "A high-performance Zuma clone built with a behavior-driven architecture, featuring complex pathing, collision detection, and chain-reaction matching logic.",
+  "description": "High-performance Zuma game with behavior-driven architecture.",
   "requestFramePermissions": []
 }

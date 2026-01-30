@@ -6,14 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Zuma Architect</title>
     
-    <!-- 移动端优化 Meta Tags -->
     <meta name="theme-color" content="#010204">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="description" content="A high-performance Zuma clone built with a behavior-driven architecture.">
     
-    <!-- PWA Manifest -->
+    <!-- 使用不带路径前缀的引用，避免沙盒环境路径解析错误 -->
     <link rel="manifest" href="manifest.json">
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -25,7 +23,6 @@
             background-color: #010204;
             color: white;
             font-family: 'Inter', sans-serif;
-            /* 防止长按弹出菜单 */
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;

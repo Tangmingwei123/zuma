@@ -32,22 +32,36 @@ const ZumaGame: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameOve
   
   const [uiScore, setUiScore] = useState(0);
   const [nextColorUI, setNextColorUI] = useState<Color>(nextColorRef.current);
+  const [isReady, setIsReady] = useState(false);
 
   const LEVEL_BALL_COUNT = 60;
 
+  // 初始化逻辑：使用 ResizeObserver 代替定时器，更优雅且省电
   useEffect(() => {
-    const init = () => {
-      if (containerRef.current && canvasRef.current) {
-        const w = containerRef.current.clientWidth;
-        const h = containerRef.current.clientHeight;
+    const handleInit = () => {
+      const w = containerRef.current?.clientWidth || window.innerWidth;
+      const h = containerRef.current?.clientHeight || window.innerHeight;
+      
+      if (w > 20 && h > 20 && canvasRef.current) {
         canvasRef.current.width = w;
         canvasRef.current.height = h;
         pathRef.current = createAdaptivePath(w, h);
+        setIsReady(true);
       }
     };
-    init();
-    window.addEventListener('resize', init);
-    return () => window.removeEventListener('resize', init);
+
+    const resizeObserver = new ResizeObserver(handleInit);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    handleInit();
+    window.addEventListener('resize', handleInit);
+
+    return () => {
+      window.removeEventListener('resize', handleInit);
+      resizeObserver.disconnect();
+    };
   }, []);
 
   const spawnNewBall = useCallback(() => {
@@ -88,7 +102,11 @@ const ZumaGame: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameOve
   }, []);
 
   const update = useCallback(() => {
-    if (!pathRef.current) return;
+    if (!pathRef.current || !isReady) {
+      requestRef.current = requestAnimationFrame(update);
+      return;
+    }
+
     const path = pathRef.current;
     const speed = INITIAL_SPEED + (currentLevelRef.current * 0.1);
 
@@ -102,8 +120,7 @@ const ZumaGame: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameOve
 
     for (let i = 0; i < ballsRef.current.length - 1; i++) {
         const currGap = ballsRef.current[i].distance - ballsRef.current[i+1].distance;
-        const pGap = prevGaps[i];
-        if (pGap > BALL_DIAMETER + 1.5 && currGap <= BALL_DIAMETER + 1.5) {
+        if (prevGaps[i] > BALL_DIAMETER + 1 && currGap <= BALL_DIAMETER + 1) {
             if (ballsRef.current[i].color === ballsRef.current[i+1].color) {
                 handleImpactMatch(i, path);
             }
@@ -158,7 +175,7 @@ const ZumaGame: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameOve
 
     draw();
     requestRef.current = requestAnimationFrame(update);
-  }, [onGameOver, spawnNewBall, handleImpactMatch]);
+  }, [onGameOver, spawnNewBall, handleImpactMatch, isReady]);
 
   const draw = () => {
     const canvas = canvasRef.current;
@@ -177,28 +194,14 @@ const ZumaGame: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameOve
     path.points.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
     ctx.stroke();
 
-    const end = path.points[path.points.length - 1];
-    const holeGrad = ctx.createRadialGradient(end.x, end.y, 0, end.x, end.y, BALL_RADIUS * 4.2);
-    holeGrad.addColorStop(0, '#000');
-    holeGrad.addColorStop(0.5, '#080a1c');
-    holeGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = holeGrad;
-    ctx.beginPath();
-    ctx.arc(end.x, end.y, BALL_RADIUS * 4.2, 0, Math.PI * 2);
-    ctx.fill();
-
     ballsRef.current.forEach(b => {
       const pos = getPointAtDistance(path, b.distance);
-      ctx.beginPath();
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.arc(pos.x, pos.y + 10, BALL_RADIUS, 0, Math.PI * 2);
-      ctx.fill();
       ctx.beginPath();
       ctx.fillStyle = COLOR_MAP[b.color];
       ctx.arc(pos.x, pos.y, BALL_RADIUS, 0, Math.PI * 2);
       ctx.fill();
       const highlight = ctx.createRadialGradient(pos.x - 8, pos.y - 8, 1, pos.x - 8, pos.y - 8, 22);
-      highlight.addColorStop(0, 'rgba(255,255,255,0.35)');
+      highlight.addColorStop(0, 'rgba(255,255,255,0.3)');
       highlight.addColorStop(1, 'transparent');
       ctx.fillStyle = highlight;
       ctx.fill();
@@ -209,30 +212,12 @@ const ZumaGame: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameOve
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(launcherAngleRef.current);
-    ctx.beginPath();
-    ctx.fillStyle = '#0a0d17';
-    ctx.arc(0, 0, 20, 0, Math.PI * 2);
-    ctx.fill();
-    const barrelL = 140;
-    const barrelW = 5;
     ctx.fillStyle = '#1a2038';
-    ctx.beginPath();
-    ctx.roundRect(0, -barrelW/2, barrelL, barrelW, 2);
-    ctx.fill();
-    ctx.fillStyle = '#3a4468';
-    ctx.beginPath();
-    ctx.moveTo(barrelL, -barrelW/2 - 2);
-    ctx.lineTo(barrelL + 30, 0);
-    ctx.lineTo(barrelL, barrelW/2 + 2);
-    ctx.closePath();
-    ctx.fill();
+    ctx.fillRect(0, -5, 140, 10);
     ctx.beginPath();
     ctx.fillStyle = COLOR_MAP[activeColorRef.current];
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = COLOR_MAP[activeColorRef.current];
-    ctx.arc(55, 0, BALL_RADIUS * 0.6, 0, Math.PI * 2);
+    ctx.arc(55, 0, BALL_RADIUS * 0.7, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
     ctx.restore();
 
     projectilesRef.current.forEach(p => {
@@ -257,7 +242,6 @@ const ZumaGame: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameOve
     return () => { if (requestRef.current) cancelAnimationFrame(requestRef.current); };
   }, [update]);
 
-  // 统一角度计算逻辑
   const updateAngle = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -266,6 +250,7 @@ const ZumaGame: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameOve
   };
 
   const shoot = useCallback(() => {
+    if (!isReady) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const angle = launcherAngleRef.current;
@@ -280,18 +265,7 @@ const ZumaGame: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameOve
     activeColorRef.current = nextColorRef.current;
     nextColorRef.current = COLORS[Math.floor(Math.random() * COLORS.length)];
     setNextColorUI(nextColorRef.current);
-  }, []);
-
-  // 处理触摸事件
-  const handleTouch = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    updateAngle(touch.clientX, touch.clientY);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    // 触摸结束时射击
-    shoot();
-  };
+  }, [isReady]);
 
   return (
     <div ref={containerRef} className="relative w-full h-full cursor-crosshair bg-[#010204]">
@@ -299,41 +273,25 @@ const ZumaGame: React.FC<{ onGameOver: (score: number) => void }> = ({ onGameOve
         ref={canvasRef} 
         onMouseMove={(e) => updateAngle(e.clientX, e.clientY)}
         onMouseDown={shoot}
-        onTouchMove={handleTouch}
-        onTouchStart={handleTouch}
-        onTouchEnd={handleTouchEnd}
-        className="w-full h-full" 
+        onTouchMove={(e) => updateAngle(e.touches[0].clientX, e.touches[0].clientY)}
+        onTouchStart={(e) => updateAngle(e.touches[0].clientX, e.touches[0].clientY)}
+        onTouchEnd={shoot}
+        className={`w-full h-full ${!isReady ? 'opacity-0' : 'opacity-100'} transition-opacity duration-500`} 
       />
       
-      <div className="absolute top-10 left-10 pointer-events-none select-none">
-        <div className="flex items-center gap-2 mb-1">
-            <div className="w-1 h-5 bg-cyan-500 rounded-full" />
-            <p className="text-[9px] text-cyan-400 font-bold uppercase tracking-[0.8em]">Core Data</p>
+      {!isReady && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#010204]">
+           <div className="text-cyan-500 animate-pulse font-mono text-sm tracking-widest uppercase">INITIALIZING_ENGINE...</div>
         </div>
-        <p className="text-7xl font-black text-white italic tracking-tighter tabular-nums">
-            {uiScore.toLocaleString()}
-        </p>
-      </div>
+      )}
 
-      <div className="absolute bottom-10 right-10 flex items-center gap-10 bg-black/90 p-8 rounded-[4rem] border border-white/5 backdrop-blur-3xl shadow-[0_0_80px_rgba(0,0,0,0.8)] select-none">
-        <div className="text-right">
-          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.4em] mb-1">Deployment</p>
-          <p className="text-3xl font-black text-white italic">{ballsSpawnedInLevel.current}/{LEVEL_BALL_COUNT}</p>
+      {isReady && (
+        <div className="absolute top-8 left-8 pointer-events-none select-none">
+            <p className="text-4xl md:text-6xl font-black text-white italic tracking-tighter tabular-nums">
+                {uiScore.toLocaleString()}
+            </p>
         </div>
-        <div className="w-px h-16 bg-white/10" />
-        <div className="flex flex-col items-center">
-          <p className="text-[9px] text-cyan-400 font-bold uppercase tracking-[0.4em] mb-4">Next</p>
-          <div className="relative">
-              <div 
-                className="w-10 h-10 rounded-full border-2 border-white/10"
-                style={{ 
-                    backgroundColor: COLOR_MAP[nextColorUI],
-                    boxShadow: `0 0 40px ${COLOR_MAP[nextColorUI]}55`
-                }} 
-              />
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
